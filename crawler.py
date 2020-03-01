@@ -45,5 +45,4 @@ for l in range(1,210):
         base = pd.concat([base,data_number],axis=1)
 
         data_final = pd.concat([data_final,base],axis=0,ignore_index=True)
-
-        data_final
+        data_final.to_hdf("E:\nutritionDB\data_nutrition.h5",key='s')
