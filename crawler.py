@@ -8,76 +8,42 @@ from tqdm import tqdm
 
 #chrome_driver設定
 chrome_path = "C:\selenium_driver_chrome\chromedriver.exe" #chromedriver.exe執行檔所存在的路徑
+
+
 driver = webdriver.Chrome(chrome_path)
+data_final = pd.DataFrame()
+for l in range(1,210):
 
-#網址設定
-url='https://consumer.fda.gov.tw/Food/TFND.aspx?nodeID=178'
+    for k in range(2,12):
+        driver.get('https://consumer.fda.gov.tw//Food/TFND.aspx?nodeID=178&p={}#ctl00_content_ListPanelinputs_first'.format(l))
+        print("page:",l)
 
-#前往該網頁
-driver.get(url)
+        inputs_second = driver.find_element_by_xpath('//*[@id="ctl00_content_ListPanel"]/table/tbody/tr[{}]/td[3]/a'.format(k)).get_attribute('href')
+        driver.get(inputs_second)
 
-
-
-inputs = driver.find_element_by_xpath('//*[@id="ctl00_content_ListPanel"]/table/tbody/tr[2]/td[3]/a').get_attribute('href')
-driver.get(inputs)
-
-data = [0]
-data[0] = driver.find_element_by_xpath('//*[@id="ctl00_bgStyle"]/div[2]/div/div/ul/li[1]/p[2]').text
-data
-
-1
+        base = []
+        for i in range(1,9):
+            base.append( driver.find_element_by_xpath('//*[@id="ctl00_bgStyle"]/div[2]/div/div/ul/li[{}]/p[2]'.format(i)).text )
+        base = pd.DataFrame(base).T
+        base.columns = ['食品分類','資料類別','整合編號','樣品名稱','俗名','樣品英文名稱','內容物描述','廢棄率']
 
 
+        data_sum = pd.DataFrame()
+        for j in range(2,105):
+            data = []
+            for i in range(2,5):
+                data.append( driver.find_element_by_xpath('//*[@id="ctl00_bgStyle"]/div[2]/div/table/tbody/tr[{}]/td[{}]'.format(j,i)).text )
+            data = pd.DataFrame(data).T
+            data.columns = ['分析項','單位','每100克含量']
+            data_sum = pd.concat([data_sum,data],axis=0)
+            print(base.iat[0,3],"_",data.iat[0,0])
 
+        data_sum['colnames'] = data_sum[['分析項', '單位']].apply(lambda x: "_".join(x), axis=1)
+        data_name = data_sum['colnames'].tolist()
+        data_number = pd.DataFrame(data_sum['每100克含量']).T.reset_index().drop(columns=["index"])
+        data_number.columns = data_name
+        base = pd.concat([base,data_number],axis=1)
 
-year_list = ['2018']
-month_list = ['3','4','5','6','7','8','9','10','11','12']
+        data_final = pd.concat([data_final,base],axis=0,ignore_index=True)
 
-stock_id = pd.read_csv('stock_id.csv')['id'].astype(object)
-
-for y in year_list:
-    data_final = pd.DataFrame()
-    Select(driver.find_element_by_name("yy")).select_by_value(y) #選擇年份
-
-    for m in month_list:
-        Select(driver.find_element_by_name("mm")).select_by_value(m) #選擇月份
-
-        for s in tqdm(range(len(stock_id))):
-            inputs = driver.find_element_by_xpath('//*[@id="main-form"]/div/div/form/input').clear() #清空欄位
-            inputs = driver.find_element_by_xpath('//*[@id="main-form"]/div/div/form/input').send_keys(stock_id[s]) #股票代碼_輸入
-            driver.find_element_by_xpath('//*[@id="main-form"]/div/div/form/a[2]').click() #執行
-
-            time.sleep( 3 )
-
-            data = driver.find_element_by_xpath('//*[@id="result-message"]').text #是否有值
-            if data == "": #沒有查詢不到的話
-                data = driver.find_element_by_xpath('//*[@id="report-table"]/tbody').text #開爬
-                data = pd.DataFrame(data.split("\n"))
-
-                data[['date','closing_price']] = data[0].str.split(expand=True)
-                data[['yy','mm','dd']] = data['date'].str.split('/',expand=True)
-
-                data = data.drop(columns=[0])
-
-                index = data['date'] != '月平均收盤價'
-                data = data[index]
-
-                data['stock_id'] = stock_id[s]
-
-                index = data['closing_price'] == '--'
-                data['closing_price'][index] = '0.00'
-                data['closing_price'] = data['closing_price'].apply(lambda x: x.replace(',',''))
-                data['closing_price'] = data['closing_price'].astype('float64')
-
-                date_list = ['yy','mm','dd']
-                for i in date_list:
-                    data[i] = data[i].astype('int64')
-                
-                data_final = data_final.append(data)
-
-                print(' stock_id:',stock_id[s],'year:',y,'month:',m)
-
-            else:
-                print(' stock_id:',stock_id[s],'year:',y,'month:',m,'is null')
-     
-        data_final.to_hdf('stock_{}_{}m.h5'.format(y,m),key='s')
+        data_final
