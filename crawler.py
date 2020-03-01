@@ -26,7 +26,7 @@ for l in range(1,210):
             base.append( driver.find_element_by_xpath('//*[@id="ctl00_bgStyle"]/div[2]/div/div/ul/li[{}]/p[2]'.format(i)).text )
         base = pd.DataFrame(base).T
         base.columns = ['食品分類','資料類別','整合編號','樣品名稱','俗名','樣品英文名稱','內容物描述','廢棄率']
-
+        print(k,":",base.iat[0,3])
 
         data_sum = pd.DataFrame()
         for j in range(2,105):
@@ -36,7 +36,7 @@ for l in range(1,210):
             data = pd.DataFrame(data).T
             data.columns = ['分析項','單位','每100克含量']
             data_sum = pd.concat([data_sum,data],axis=0)
-            print(base.iat[0,3],"_",data.iat[0,0])
+            #print(base.iat[0,3],"_",data.iat[0,0])
 
         data_sum['colnames'] = data_sum[['分析項', '單位']].apply(lambda x: "_".join(x), axis=1)
         data_name = data_sum['colnames'].tolist()
@@ -45,4 +45,4 @@ for l in range(1,210):
         base = pd.concat([base,data_number],axis=1)
 
         data_final = pd.concat([data_final,base],axis=0,ignore_index=True)
-        data_final.to_hdf("E:\nutritionDB\data_nutrition.h5",key='s')
+        data_final.to_hdf("E:\\nutritionDB\\data_nutrition.h5",key='s',mode="w")
