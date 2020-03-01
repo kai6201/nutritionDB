@@ -25,7 +25,7 @@ data = [0]
 data[0] = driver.find_element_by_xpath('//*[@id="ctl00_bgStyle"]/div[2]/div/div/ul/li[1]/p[2]').text
 data
 
-2
+1
 
 
 
